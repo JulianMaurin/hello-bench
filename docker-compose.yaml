@@ -1,0 +1,108 @@
+services:
+  python-fastapi-uvicorn:
+    build:
+      context: ./python/fastapi_bench
+    container_name: python-fastapi-uvicorn-bench
+    entrypoint: ["sh", "uvicorn.sh"]
+    ports:
+      - "8000:8000"
+    networks:
+      - testnet
+
+  python-fastapi-gunicorn:
+    build:
+      context: ./python/fastapi_bench
+    container_name: python-fastapi-gunicorn-bench
+    entrypoint: ["sh", "gunicorn.sh"]
+    ports:
+      - "8001:8000"
+    networks:
+      - testnet
+
+  python-flask:
+    build:
+      context: ./python/flask_bench
+    container_name: python-flask-bench
+    ports:
+      - "8002:8000"
+    networks:
+      - testnet
+
+  python-django:
+    build:
+      context: ./python/django_bench
+    container_name: python-django-bench
+    ports:
+      - "8003:8000"
+    networks:
+      - testnet
+
+  rust-actix-web:
+    build:
+      context: ./rust/actix_web_bench
+    container_name: rust-actix-web-bench
+    ports:
+      - "8004:8000"
+    networks:
+      - testnet
+
+  go-fiber:
+    build:
+      context: ./go/fiber
+    container_name: go-fiber-bench
+    ports:
+      - "8005:8000"
+    networks:
+      - testnet
+
+  k6:
+    image: grafana/k6
+    container_name: k6_test
+    volumes:
+      - ./k6:/scripts
+    working_dir: /scripts
+    entrypoint: ["sh", "run.sh"]
+    depends_on:
+      - influxdb
+      - grafana
+      - python-fastapi-gunicorn
+      - python-fastapi-uvicorn
+      - python-flask
+    networks:
+      - testnet
+
+  influxdb:
+    image: influxdb:1.11.8
+    container_name: influxdb
+    ports:
+      - "8086:8086"
+    networks:
+      - testnet
+    environment:
+      - INFLUXDB_DB=k6
+
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    volumes:
+      - ./grafana/dashboards:/etc/grafana/dashboards
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+    ports:
+      - "3000:3000"
+    networks:
+      - testnet
+    depends_on:
+      - influxdb
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+networks:
+  testnet:
