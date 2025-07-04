@@ -7,7 +7,7 @@ export const options = sharedOptions;
 
 export default function () {
   const res = http.get('http://python-flask:8000/hello-world', {
-    tags: { language: 'python', framework: 'fastapi', async: false, response: 'json', server: 'gunicorn'},
+    tags: { language: 'python', framework: 'flask', async: false, response: 'json', server: 'gunicorn'},
   });
 
   check(res, {
